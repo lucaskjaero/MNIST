@@ -55,6 +55,27 @@ def le_net():
     return model
 
 
+def alex_net():
+    model = Sequential()
+    model.add(Conv2D(96, kernel_size=(11, 11), strides=4, padding="same", activation='relu',
+                     input_shape=INPUT_SHAPE))
+    model.add(MaxPooling2D(pool_size=(3, 3), strides=2, padding="valid"))
+    model.add(Conv2D(256, kernel_size=(5, 5), strides=1, padding="same", activation='relu'))
+    model.add(MaxPooling2D(pool_size=(3, 3), strides=2, padding="valid"))
+    model.add(Conv2D(384, kernel_size=(3, 3), strides=1, padding="same", activation='relu'))
+    model.add(Conv2D(384, kernel_size=(3, 3), strides=1, padding="same", activation='relu'))
+    model.add(Conv2D(256, kernel_size=(3, 3), strides=1, padding="same", activation='relu'))
+    model.add(Flatten())
+    model.add(Dense(50, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(50, activation='relu'))
+    model.add(Dense(OUTPUT_CLASSES, activation='softmax'))
+
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+    return model
+
+
 def train_model(model):
     x_train, x_test, y_train, y_test = load_data()
     tensorboard = TensorBoard(log_dir='./logs', histogram_freq=1, write_graph=True, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None)
@@ -76,7 +97,7 @@ def make_submission(model):
 
 
 def main():
-    model = le_net()
+    model = alex_net()
     train_model(model)
     make_submission(model)
 
