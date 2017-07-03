@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 from sklearn.model_selection import train_test_split
@@ -54,14 +55,30 @@ def le_net():
     return model
 
 
-def main():
+def train_model(model):
     x_train, x_test, y_train, y_test = load_data()
-    model = le_net()
     tensorboard = TensorBoard(log_dir='./logs', histogram_freq=1, write_graph=True, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None)
 
-    model.fit(x_train, y_train, batch_size=100, verbose=1, epochs=50, callbacks=[tensorboard], validation_data=(x_test, y_test))
+    model.fit(x_train, y_train, batch_size=100, verbose=1, epochs=100, callbacks=[tensorboard], validation_data=(x_test, y_test))
 
     model.save("MNIST.h5")
+
+
+def make_submission(model):
+    samples = process_samples(pd.read_csv("test.csv"))
+    predictions = model.predict(samples)
+    category_predictions = np.argmax(predictions, axis=1)
+
+    with open("submission.csv", 'w') as submission:
+        submission.write("ImageId,Label\n")
+        for index, value in enumerate(category_predictions):
+            submission.write("%s,%s\n" % (index + 1, value))
+
+
+def main():
+    model = le_net()
+    train_model(model)
+    make_submission(model)
 
 
 if __name__ == '__main__':
