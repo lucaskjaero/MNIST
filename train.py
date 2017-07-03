@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 
 from tensorflow.contrib.keras.python.keras.callbacks import TensorBoard
 from tensorflow.contrib.keras.python.keras.models import Sequential
-from tensorflow.contrib.keras.python.keras.layers import Conv2D, Dense, Dropout, Flatten, AveragePooling2D
+from tensorflow.contrib.keras.python.keras.layers import Conv2D, Dense, Dropout, Flatten, AveragePooling2D, MaxPooling2D
 
 HEIGHT = 28
 WIDTH = 28
