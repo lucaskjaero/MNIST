@@ -130,7 +130,7 @@ def google_net():
     inception_layer_8 = inception_layer(pooling_layer_4, [256, [160, 320], [32, 128], 128])
     inception_layer_9 = inception_layer(inception_layer_8, [384, [192, 384], [48, 128], 128])
 
-    # TODO re-enable if this model doesn't perform well enough. 
+    # TODO re-enable if this model doesn't perform well enough.
     #pooling_layer_5 = AveragePooling2D((7, 7), padding='valid')(inception_layer_9)
 
     dropout = Dropout(0.4)(inception_layer_9)
@@ -140,7 +140,7 @@ def google_net():
     predictions = Activation('softmax')(fully_connected)
 
     model = Model(inputs=inputs, outputs=predictions)
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.compile(loss='binary_crossentropy', optimizer='adamax', metrics=['accuracy'])
 
     return model
 
@@ -150,7 +150,7 @@ def train_model(model):
 
     tensorboard = TensorBoard(log_dir='./logs', histogram_freq=1, write_graph=True, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None)
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=1, mode='auto')
-    checkpointing = ModelCheckpoint("MNIST.{epoch:02d}-{val_loss:.2f}.hdf5", monitor='val_loss', verbose=1, save_best_only=False, mode='auto', period=1)
+    checkpointing = ModelCheckpoint("MNIST.{epoch:02d}-{val_loss:.2f}.hdf5", monitor='val_loss', save_best_only=False, mode='auto', period=1)
 
     model.fit(x_train, y_train, batch_size=100, verbose=1, epochs=100, callbacks=[checkpointing, early_stopping, tensorboard], validation_data=(x_test, y_test))
 
