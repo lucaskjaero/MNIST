@@ -106,3 +106,5 @@ train.csv
 
 # Tensorboard
 /logs
+submission.csv
+sample_submission.csv
