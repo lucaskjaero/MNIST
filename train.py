@@ -1,11 +1,13 @@
 import numpy as np
 import pandas as pd
 
+from sklearn.grid_search import GridSearchCV
 from sklearn.model_selection import train_test_split
 
-from tensorflow.contrib.keras.python.keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
-from tensorflow.contrib.keras.python.keras.models import Model, Sequential
-from tensorflow.contrib.keras.python.keras.layers import Activation, AveragePooling2D, BatchNormalization, concatenate, Conv2D, Dense, Dropout, Flatten, Input, MaxPooling2D
+from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
+from keras.models import Model, Sequential
+from keras.layers import Activation, AveragePooling2D, BatchNormalization, concatenate, Conv2D, Dense, Dropout, Flatten, Input, MaxPooling2D
+from keras.wrappers.scikit_learn import KerasClassifier
 
 HEIGHT = 28
 WIDTH = 28
@@ -145,6 +147,65 @@ def google_net():
     return model
 
 
+def custom_model(convolution_layers, filters, kernel_size, convolution_strides, convolution_padding, pool_size, pool_strides, pool_padding, dense_layers, dense_layer_size, dropout):
+    model = Sequential()
+    for layer in range(convolution_layers):
+        if layer == 0:
+            model.add(Conv2D(filters, kernel_size=kernel_size, strides=convolution_strides, padding=convolution_padding, activation='relu', input_shape=INPUT_SHAPE))
+        else:
+            model.add(Conv2D(filters, kernel_size=kernel_size, strides=convolution_strides, padding=convolution_padding, activation='relu'))
+        model.add(MaxPooling2D(pool_size=pool_size, strides=pool_strides, padding=pool_padding))
+    model.add(Flatten())
+    for layer in range(dense_layers):
+        if layer == (dense_layers - 1):
+            model.add(Dense(OUTPUT_CLASSES, activation='softmax'))
+        else:
+            model.add(Dense(dense_layer_size, activation='relu'))
+        model.add(Dropout(dropout))
+
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    return model
+
+
+def grid_search():
+    # This is going to take forever but why not
+    x_train, x_test, y_train, y_test = load_data()
+
+    clf = KerasClassifier(custom_model, batch_size=32)
+
+    grid = {
+        'convolution_layers': [1, 2, 3, 4],
+        'filters': [96, 128, 256, 384],
+        'kernel_size': [(2, 2), (3, 3), (5, 5), (11, 11)],
+        'convolution_strides': [1, 2, 4],
+        'convolution_padding': ['same', 'valid'],
+        'pool_size': [(2, 2), (3, 3), (5, 5)],
+        'pool_strides': [1, 2, 4],
+        'pool_padding': ['same', 'valid'],
+        'dense_layers': [1, 2, 3],
+        'dense_layer_size': [5, 10, 50, 100],
+        'dropout': [10, 30, 50],
+    }
+
+    validator = GridSearchCV(clf, param_grid=grid, scoring='neg_log_loss', n_jobs=1)
+    validator.fit(x_train, y_train)
+
+    print('The parameters of the best model are: ')
+    print(validator.best_params_)
+
+    # validator.best_estimator_ returns sklearn-wrapped version of best model.
+    # validator.best_estimator_.model returns the (unwrapped) keras model
+    best_model = validator.best_estimator_.model
+    metric_names = best_model.metrics_names
+    metric_values = best_model.evaluate(x_test, y_test)
+    for metric, value in zip(metric_names, metric_values):
+        print(metric, ': ', value)
+
+    best_model.save("BestModel.h5")
+
+    return best_model
+
+
 def train_model(model):
     x_train, x_test, y_train, y_test = load_data()
 
@@ -169,8 +230,7 @@ def make_submission(model):
 
 
 def main():
-    model = google_net()
-    train_model(model)
+    model = grid_search()
     make_submission(model)
 
 
