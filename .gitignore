@@ -108,3 +108,6 @@ train.csv
 /logs
 submission.csv
 sample_submission.csv
+
+# SqueezeNet
+squeezenet_demo

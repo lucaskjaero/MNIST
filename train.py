@@ -9,6 +9,9 @@ from keras.models import Model, Sequential
 from keras.layers import Activation, AveragePooling2D, BatchNormalization, concatenate, Conv2D, Dense, Dropout, Flatten, Input, MaxPooling2D
 from keras.wrappers.scikit_learn import KerasClassifier
 
+from .model import SqueezeNet
+# SqueezeNet implementation from https://github.com/DT42/squeezenet_demo
+
 HEIGHT = 28
 WIDTH = 28
 CHANNELS = 1
@@ -16,9 +19,15 @@ INPUT_SHAPE = (HEIGHT, WIDTH, CHANNELS)
 OUTPUT_CLASSES = 10
 
 
-def process_samples(samples):
+def process_samples(samples, channels_first=False):
     sample_number = len(samples)
-    reshaped_samples = samples.as_matrix().reshape(sample_number, HEIGHT, WIDTH, CHANNELS)
+    samples_matrix = samples.as_matrix()
+
+    if channels_first:
+        reshaped_samples = samples_matrix.reshape(sample_number, CHANNELS, HEIGHT, WIDTH)
+    else:
+        reshaped_samples = samples_matrix.reshape(sample_number, HEIGHT, WIDTH, CHANNELS)
+
     return reshaped_samples / 256
 
 
@@ -26,13 +35,13 @@ def process_labels(labels):
     return pd.get_dummies(labels).as_matrix()
 
 
-def load_data():
+def load_data(channels_first=False):
     # Read the data
     dataset = pd.read_csv("train.csv")
 
     # Split into data and labels
     labels = process_labels(dataset["label"])
-    samples = process_samples(dataset.drop("label", axis=1))
+    samples = process_samples(dataset.drop("label", axis=1), channels_first=channels_first)
 
     x_train, x_test, y_train, y_test = train_test_split(samples, labels, test_size=0.2)
 
@@ -168,7 +177,7 @@ def custom_model(convolution_layers, filters, kernel_size, convolution_strides, 
 
 
 def grid_search():
-    # This is going to take forever but why not
+    # Turns out this will take two years. Let's do this smarter.
     x_train, x_test, y_train, y_test = load_data()
 
     clf = KerasClassifier(custom_model, batch_size=32)
@@ -206,8 +215,8 @@ def grid_search():
     return best_model
 
 
-def train_model(model):
-    x_train, x_test, y_train, y_test = load_data()
+def train_model(model, channels_first=False):
+    x_train, x_test, y_train, y_test = load_data(channels_first=channels_first)
 
     tensorboard = TensorBoard(log_dir='./logs', histogram_freq=1, write_graph=True, write_images=False, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None)
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=1, mode='auto')
@@ -218,8 +227,8 @@ def train_model(model):
     model.save("MNIST.h5")
 
 
-def make_submission(model):
-    samples = process_samples(pd.read_csv("test.csv"))
+def make_submission(model, channels_first=False):
+    samples = process_samples(pd.read_csv("test.csv"), channels_first=channels_first)
     predictions = model.predict(samples)
     category_predictions = np.argmax(predictions, axis=1)
 
@@ -230,7 +239,8 @@ def make_submission(model):
 
 
 def main():
-    model = grid_search()
+    model = alex_net()
+    train_model(model)
     make_submission(model)
 
 
